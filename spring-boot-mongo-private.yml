@@ -1,0 +1,23 @@
+node{
+    stage('git clone'){
+        git credentialsId: 'githubcredentialsid', url: 'https://github.com/pravallika-4/spring-boot-mongo-docker.git'
+    }
+    stage('mvn clean package'){
+        def mavenHome = tool name: "maven3.6.3"
+        sh "${mavenHome}/bin/mvn clean package"
+    }
+    stage('docker build'){
+        sh "docker build -t 172.31.11.124:8084/spring-boot-mongo ."
+    }
+    stage('docker login and push'){
+        withCredentials([string(credentialsId: 'private_repo_pwd', variable: 'private_repo_pwd')]) {
+        sh "docker login -u admin -p ${private_repo_pwd} 172.31.11.124:8084"
+}
+        sh "docker push 172.31.11.124:8084/spring-boot-mongo"
+    }
+    stage("Deploy app into To Kuberates Cluster"){
+       withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'kubernetesconfig', namespace: '', serverUrl: '') {
+    sh "kubectl apply -f springBootMongo-PrivateRepo.yml"       
+}
+      }
+}
